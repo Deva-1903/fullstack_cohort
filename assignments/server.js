@@ -40,98 +40,77 @@
   Testing the server - run `npm run test-todoServer` command in terminal
  */
 const express = require("express");
-
-const { users, todos } = require("./db");
-
-const { authCheck } = require("./middlewares/authCheck");
 const app = express(); // --> instance creation
+app.use(express.json())
+const Ajv = require('ajv')
+const ajv = new Ajv();
 
-app.use(express.json());
+const userSchema = {
+  type: 'object',
+  properties: {
+    name: { type: 'string', minLength: 1 },
+    email: { type: 'string' },
+    age: { type: 'integer', minimum: 19 }
+  },
+  required: ['name', 'email', 'age'],
+  additionalProperties: false
+};
+//app.use(validateUser)
 
-/**
- *  1.GET /todos - Retrieve all todo items
-    Description: Returns a list of all todo items.
-    Response: 200 OK with an array of todo items in JSON format.
-    Example: GET http://localhost:3000/todos
- */
 
-app.get("/todos", authCheck, function (request, response) {
-  const userId = request.headers["id"];
+function userSchemaValidation(req, res, next) {
+    //compile
+    const validate = ajv.compile(userSchema);
+    //validate
+    const valid = validate(req.body);
 
-  let result = [];
-
-  for (let i = 0; i < todos.length; i++) {
-    if (todos[i].createdBy == userId) {
-      result.push(todos[i]);
+    if(!valid) {
+      //console.log(validate)
+      return res.status(400).json({
+        message: validate.errors
+      })
     }
-  }
+    next()
+}
 
-  if (result.length === 0) {
-    return response.status(200).json({
-      userName: request.user.name,
-      dob: request.user.dob,
-      todos: "You don't have any todo, Please add one",
+app.post("/doctor", userSchemaValidation, function (request, response) {
+
+    const { email, name, age } = request.body
+
+    //save to db
+    response.status(200).json({
+      message: "You're healthy",
     });
   }
-
-  response.status(200).json({
-    userName: request.user.name,
-    dob: request.user.dob,
-    todos: result,
-  });
-});
-
-/**
- *   2.GET /todos/:id - Retrieve a specific todo item by ID
-    Description: Returns a specific todo item identified by its ID.
-    Response: 200 OK with the todo item in JSON format if found, or 404 Not Found if not found.
-    Example: GET http://localhost:3000/todos/123
- */
-
-app.get("/todos/:id", authCheck, function (req, res) {
-  let input = req.params.id;
-
-  input = parseInt(input);
-
-  for (let i = 0; i < todos.length; i++) {
-    if (todos[i].id === input) {
-      return res.status(200).json({
-        todo: todos[i],
-      });
-    }
-  }
-
-  res.status(404).json({
-    message: "Todo Not Found",
-  });
-});
-
-/**  3. POST /todos - Create a new todo item
-    Description: Creates a new todo item.
-    Request Body: JSON object representing the todo item.
-    Response: 201 Created with the ID of the created todo item in JSON format. eg: {id: 1}
-    Example: POST http://localhost:3000/todos
-    Request Body: { "title": "Buy groceries", "completed": false, description: "I should buy groceries" } 
-*/
-app.post("/todos", authCheck, function (request, response) {
-  const userName = request.body.name;
-  const userStatus = request.body.status;
-
-  const ID = Math.floor(Math.random() * 1000) + 1;
-
-  let structure = {
-    name: userName,
-    status: userStatus,
-    id: ID,
-  };
-
-  todos.push(structure);
-
-  response.status(201).json({
-    todos: todos,
-  });
-});
+);
 
 app.listen(3000, function () {
   console.log("Server started");
 });
+
+function validateUser(req, res, next) {
+
+  const { email, name, age } = req.body
+    
+  if (typeof name !== 'string' || name.trim() === '') {
+    return res.status(400).json({
+      message: "Invalid name",
+    });
+  }
+  
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({
+      message: "Invalid email",
+    });
+  }
+  
+  if (typeof age !== 'number' || age <= 18) {
+      return res.status(400).json({
+      message: "Invalid age",
+    });
+  }
+  
+  return next();
+}
+
