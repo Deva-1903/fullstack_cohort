@@ -12,7 +12,7 @@ app.use(cors());
 app.use(express.json());
 
 // Connect to MongoDB
-mongoose.connect('mongodb://Deva:aLaK8eTb63F2O1Xv@ac-mgppflz-shard-00-00.fybmkgs.mongodb.net:27017,ac-mgppflz-shard-00-01.fybmkgs.mongodb.net:27017,ac-mgppflz-shard-00-02.fybmkgs.mongodb.net:27017/fullstack?ssl=true&replicaSet=atlas-nm89mi-shard-0&authSource=admin&retryWrites=true&w=majority')
+mongoose.connect('')
   .then(() => console.log('Connected to MongoDB'))
   .catch(err => console.error('Could not connect to MongoDB', err));
 
